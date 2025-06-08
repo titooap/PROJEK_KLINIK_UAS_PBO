@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: May 30, 2025 at 08:28 AM
+-- Generation Time: Jun 04, 2025 at 05:38 AM
 -- Server version: 8.4.3
 -- PHP Version: 8.3.16
 
@@ -19,8 +19,6 @@ SET time_zone = "+00:00";
 
 --
 -- Database: `klinik_db`
-CREATE Database klinik_db;
-USE klinik_db;
 --
 
 -- --------------------------------------------------------
@@ -33,7 +31,7 @@ CREATE TABLE `admin` (
   `idAdmin` varchar(10) NOT NULL,
   `nama` varchar(100) NOT NULL,
   `idUser` varchar(10) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -46,7 +44,7 @@ CREATE TABLE `dokter` (
   `nama` varchar(100) NOT NULL,
   `spesialisasi` varchar(50) NOT NULL,
   `idUser` varchar(10) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `dokter`
@@ -56,7 +54,39 @@ INSERT INTO `dokter` (`idDokter`, `nama`, `spesialisasi`, `idUser`) VALUES
 ('DOK001', 'Dr. Fadli', 'Umum', 'USR002'),
 ('DOK003', 'DR. Supri', 'Kayang', 'USR002'),
 ('DOK005', 'Nazwa', 'Jantung', 'USR002'),
-('DOK019', 'Nazwa', 'Jantung', 'USR002');
+('DOK008', 'Julia', 'Jantung', 'USR003'),
+('DOK019', 'Nazwa', 'Jantung', 'USR002'),
+('DOK111', 'kirana', 'Otak', 'USR004'),
+('DOK120', 'ZIZI', 'Tulang', 'USR005');
+
+--
+-- Triggers `dokter`
+--
+DELIMITER $$
+CREATE TRIGGER `insert_user_dokter` BEFORE INSERT ON `dokter` FOR EACH ROW BEGIN
+    DECLARE new_id VARCHAR(10);
+    DECLARE new_username VARCHAR(50);
+    DECLARE suffix INT DEFAULT 0;
+    
+    -- Generate ID User baru jika tidak disertakan
+    IF NEW.idUser IS NULL OR NEW.idUser = '' THEN
+        SET new_id = CONCAT('USR', LPAD((SELECT COUNT(*) FROM user) + 1, 3, '0'));
+        SET NEW.idUser = new_id;
+    END IF;
+    
+    -- Generate username
+    SET new_username = LOWER(REPLACE(NEW.nama, ' ', '_'));
+    WHILE EXISTS (SELECT 1 FROM user WHERE username = new_username) DO
+        SET suffix = suffix + 1;
+        SET new_username = CONCAT(LOWER(REPLACE(NEW.nama, ' ', '_')), suffix);
+    END WHILE;
+    
+    -- Insert user baru
+    INSERT INTO user (idUser, username, password, role)
+    VALUES (NEW.idUser, new_username, '12345', 'dokter');
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -69,13 +99,14 @@ CREATE TABLE `jadwal` (
   `hari` enum('Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu') NOT NULL,
   `jamMulai` time NOT NULL,
   `jamBerakhir` time NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `jadwal`
 --
 
 INSERT INTO `jadwal` (`idJadwal`, `hari`, `jamMulai`, `jamBerakhir`) VALUES
+('JD002', 'Jumat', '08:00:00', '16:00:00'),
 ('JD003', 'Jumat', '08:00:00', '16:00:00'),
 ('JDL001', 'Senin', '08:00:00', '12:00:00'),
 ('JDL002', 'Selasa', '13:00:00', '17:00:00'),
@@ -94,7 +125,7 @@ CREATE TABLE `jadwaldokter` (
   `idDokter` varchar(10) NOT NULL,
   `idJadwal` varchar(10) NOT NULL,
   `idRuangan` varchar(10) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `jadwaldokter`
@@ -102,6 +133,7 @@ CREATE TABLE `jadwaldokter` (
 
 INSERT INTO `jadwaldokter` (`idJadwalDokter`, `idDokter`, `idJadwal`, `idRuangan`) VALUES
 ('JD001', 'DOK001', 'JDL001', 'RU003'),
+('JD002', 'DOK019', 'JD002', 'RU004'),
 ('JD003', 'DOK003', 'JD003', 'RU002');
 
 -- --------------------------------------------------------
@@ -115,7 +147,7 @@ CREATE TABLE `obat` (
   `namaObat` varchar(100) NOT NULL,
   `stok` int NOT NULL DEFAULT '0',
   `harga` decimal(10,2) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `obat`
@@ -140,7 +172,7 @@ CREATE TABLE `pasien` (
   `nama` varchar(100) NOT NULL,
   `alamat` text,
   `telepon` varchar(15) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `pasien`
@@ -170,14 +202,14 @@ CREATE TABLE `resep` (
   `idDokter` varchar(10) NOT NULL,
   `idObat` varchar(10) DEFAULT NULL,
   `status` enum('ditebus','belum ditebus') NOT NULL DEFAULT 'belum ditebus'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `resep`
 --
 
 INSERT INTO `resep` (`idResep`, `penyakit`, `tanggal`, `idPasien`, `idDokter`, `idObat`, `status`) VALUES
-('RSP001', 'Maag', '2025-05-24', 'PSN001', 'DOK001', NULL, 'belum ditebus'),
+('RSP001', 'Maag', '2025-05-24', 'PSN001', 'DOK001', NULL, 'ditebus'),
 ('RSP002', 'Lambung', '2025-05-26', 'PSN005', 'DOK001', 'OBT001', 'ditebus');
 
 -- --------------------------------------------------------
@@ -191,7 +223,7 @@ CREATE TABLE `ruangan` (
   `namaRuangan` varchar(50) NOT NULL,
   `lantai` int NOT NULL,
   `kapasitas` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `ruangan`
@@ -214,7 +246,7 @@ CREATE TABLE `user` (
   `username` varchar(50) NOT NULL,
   `password` varchar(255) NOT NULL,
   `role` enum('admin','dokter','staff') NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `user`
@@ -222,7 +254,10 @@ CREATE TABLE `user` (
 
 INSERT INTO `user` (`idUser`, `username`, `password`, `role`) VALUES
 ('USR001', 'admin', '12345', 'admin'),
-('USR002', 'dokter', '12345', 'dokter');
+('USR002', 'dokter', '12345', 'dokter'),
+('USR003', 'julia', '12345', 'dokter'),
+('USR004', 'kirana', '12345', 'dokter'),
+('USR005', 'zizi', '12345', 'dokter');
 
 --
 -- Indexes for dumped tables
